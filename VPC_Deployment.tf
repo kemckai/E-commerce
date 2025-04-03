@@ -1,5 +1,6 @@
 provider "aws" {
-  region = "eu-central-1" # AWS region set to Frankfurt, Germany
+  region = "eu-central-1" # Frankfurt, Germany
+  profile = "sam"
 }
 
 resource "aws_vpc" "main" {
@@ -12,6 +13,12 @@ resource "aws_subnet" "my_subnet" {
   cidr_block        = "10.0.1.0/24"   # Define the CIDR block for the subnet
   availability_zone = "eu-central-1a" # Specify the availability zone for the subnet
   # This creates a subnet within the VPC for hosting resources.
+}
+
+resource "aws_subnet" "my_subnet_2" {
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = "10.0.2.0/24"
+  availability_zone = "eu-central-1b"
 }
 
 resource "aws_internet_gateway" "igw" {
@@ -36,19 +43,13 @@ resource "aws_route_table_association" "public" {
 
 resource "aws_security_group" "web_sg" {
   vpc_id = aws_vpc.main.id
+  name_prefix = "web-sg-"
 
   ingress {
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["YOUR_IP/32"] # Replace with your IP for SSH access
+    cidr_blocks = ["83.229.26.124/32"] # Replace with your actual IP
   }
 
   egress {
@@ -60,7 +61,7 @@ resource "aws_security_group" "web_sg" {
 }
 
 resource "aws_instance" "web_server" {
-  ami           = "ami-0c55b159cbfafe01e" # Replace with correct AMI for your region
+  ami           = "ami-12345678" # Replace with correct AMI for your region
   instance_type = "t2.micro"
   subnet_id     = aws_subnet.my_subnet.id
   security_groups = [aws_security_group.web_sg.name]
@@ -76,25 +77,24 @@ resource "aws_instance" "web_server" {
 
 resource "aws_db_instance" "ecommerce_db" {
   allocated_storage    = 20
-  engine             = "mysql"
-  engine_version     = "8.0"
-  instance_class     = "db.t2.micro"
-  name               = "ecommerce"
-  username           = "admin"
-  password           = "jedi23" # Change this
+  engine               = "mysql"
+  engine_version       = "8.0"
+  instance_class       = "db.t2.micro"
+  db_name              = "ecommerce" # Corrected from "name" to "db_name"
+  username             = "admin"
+  password             = "jedi23" # Change this to a secure password
   db_subnet_group_name = aws_db_subnet_group.default.name
   vpc_security_group_ids = [aws_security_group.web_sg.id]
-  
-  skip_final_snapshot = true
+  skip_final_snapshot  = true
 }
 
 resource "aws_db_subnet_group" "default" {
-  name       = "default"
-  subnet_ids = [aws_subnet.my_subnet.id]
+  name       = "ecommerce-db-subnet-group"
+  subnet_ids = [aws_subnet.my_subnet.id, aws_subnet.my_subnet_2.id]
 }
 
 resource "aws_s3_bucket" "product_images" {
-  bucket = "my-ecommerce-product-images-bucket" # Change to a unique name
+  bucket = "my-ecommerce-product-images-bucket"
   acl    = "private"
 }
 
@@ -108,7 +108,4 @@ output "database_endpoint" {
 
 output "s3_bucket_name" {
   value = aws_s3_bucket.product_images.bucket
-}
-
-  }
 }
