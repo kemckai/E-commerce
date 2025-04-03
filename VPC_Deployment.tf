@@ -67,7 +67,7 @@ resource "aws_security_group" "web_sg" {
 }
 
 resource "aws_instance" "web_server" {
-  ami           = "ami-12345678" # Replace with correct AMI for your region
+  ami           = "ami-0ecf75a98fe8519d7" # Replace with correct AMI for your region
   instance_type = "t2.micro"
   subnet_id     = aws_subnet.my_subnet.id
   security_groups = [aws_security_group.web_sg.name]
