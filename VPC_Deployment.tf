@@ -3,6 +3,12 @@ provider "aws" {
   profile = "sam"
 }
 
+variable "db_password" {
+  description = "The password for the database"
+  type        = string
+  sensitive   = true
+}
+
 resource "aws_vpc" "main" {
   cidr_block = "10.0.0.0/16" # Define the CIDR block for the VPC
   # This creates a Virtual Private Cloud (VPC) to isolate resources in the AWS network.
@@ -82,7 +88,7 @@ resource "aws_db_instance" "ecommerce_db" {
   instance_class       = "db.t2.micro"
   db_name              = "ecommerce" # Corrected from "name" to "db_name"
   username             = "admin"
-  password             = "jedi23" # Change this to a secure password
+  password             = var.db_password # Change this to a secure password
   db_subnet_group_name = aws_db_subnet_group.default.name
   vpc_security_group_ids = [aws_security_group.web_sg.id]
   skip_final_snapshot  = true
